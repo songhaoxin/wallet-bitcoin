@@ -95,25 +95,33 @@ func GetBalanceApi(c *gin.Context)  {
 	}
 
 
-	address_rep,_ := resMap["address"].(string)
-	n_tx := resMap["n_tx"].(float64)
-	total_received := resMap["total_received"].(float64)
-	total_sent := resMap["total_sent"].(float64)
-	final_balance := resMap["final_balance"].(float64)
+	var txInfo models.TxInfo
+	err = json.Unmarshal(body,&txInfo)
+	if err != nil {
+		c.JSON(res.StatusCode(),gin.H{
+			"status": 1,
+			"err":err,
+			"msg":    "查询失败！",
+		})
+		return
+	}
 
-	balance := models.InitBalance()
-	balance.Address = address_rep
-	balance.N_tx = n_tx
-	balance.Total_received = total_received
-	balance.Total_sent = total_sent
-	balance.Final_balance = final_balance
+	finalBalance,err := models.BalanceByAddress(address,txInfo)
+	if err != nil {
+		c.JSON(res.StatusCode(),gin.H{
+			"status": 1,
+			"err":err,
+			"msg":    "查询失败！",
+		})
+		return
+	}
 
 
 	log.Println(resMap)
 	c.JSON(res.StatusCode(),gin.H{
 		"status": 0,
 		"msg":    "查询成功！",
-		"data":balance,
+		"data":finalBalance,
 	})
 
 

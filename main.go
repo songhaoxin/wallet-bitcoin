@@ -12,8 +12,7 @@ import (
 // @termOfService http://swagger.io/terms/
 
 func main() {
-
-
 	router := InitRouter()
+
 	router.Run(":8788")
 }
