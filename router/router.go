@@ -10,7 +10,17 @@ import (
 
 func InitRouter() *gin.Engine {
 	router := gin.Default()
+	/// Swagger UI 相关API
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	router.POST("/bth/balance/",GetBalanceApi)
+
+	/// 获取BTC帐户的余额
+	router.POST("/btc/account/balance/",GetBalanceApi)
+
+	/// 向指定的钱包添加BTC帐户
+	router.POST("/btc/wallet/accounts/",AddBtcAccountApi)
+
+	/// 修改钱包的电话号码
+	router.PUT("/btc/wallet/phone/",UpdatePhoneNumberApi)
+
 	return router
 }

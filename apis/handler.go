@@ -7,8 +7,159 @@ import (
 	"github.com/kirinlabs/HttpRequest"
 	"net/http"
 	"wallet-bitcoin/setting"
-	"wallet-bitcoin/models"
+	"wallet-bitcoin/model"
+	"github.com/shopspring/decimal"
+	"strconv"
+	"fmt"
+
 )
+
+
+
+
+// @Summary 向钱包增加BTC帐户
+// @Produce  json
+// @Accept  application/x-www-form-urlencoded
+// @Param   walletid     formData    int     true        "钱包的Id"
+// @Param   address 	 formData	 string		true 		"BTC地址"
+// @Success 201 {string} string    "添加BTC帐户成功"
+// @Failure 400 {string} string "非法参数"
+// @Failure 500 {string} string "失败"
+// @Router /btc/wallet/accounts/ [post]
+func AddBtcAccountApi(c *gin.Context)  {
+	walletId := c.PostForm("walletid")
+	log.Println("传入的钱包Id:",walletId)
+
+	if "" == walletId {
+		log.Println("钱包Id不能为空")
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "缺少参数：walletid",
+		})
+		return
+	}
+	walletId_Int,err := strconv.Atoi(walletId)
+	if nil != err {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "非法的walletid",
+		})
+		return
+	}
+
+	wallet := model.Wallet{}
+
+	if !wallet.IsExistWallet(walletId_Int) {
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "walletid 不存在",
+		})
+		return
+	}
+
+	//---------------------
+
+	address := c.PostForm("address")
+	log.Println("账户的地址：",address)
+	if "" == address {
+		log.Println("账户的地址不能为空")
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "缺少参数：address",
+		})
+		return
+	}
+
+	////////////////////////////////////////////////////////////
+
+
+	if wallet.IsExistBtc(walletId_Int,address) {
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "钱包中已经存在该地址的BTC帐户",
+		})
+		return
+	}
+
+	state := wallet.AddBtcAccount(walletId_Int,address)
+	if !state {
+		c.JSON(http.StatusInternalServerError,gin.H{
+			"status": 1,
+			"msg":    "增加BTC帐户失败",
+		})
+	}
+
+	c.JSON(http.StatusCreated,gin.H{
+		"status": 0,
+		"msg":    "增加BTC帐户成功",
+	})
+	return
+
+}
+
+
+// @Summary 修改钱包的电话号码
+// @Produce  json
+// @Accept  application/x-www-form-urlencoded
+// @Param   walletid     formData    int     true        "钱包的Id"
+// @Param   phone 	 formData	 string		true 		"电话号码"
+// @Success 200 {string} string    "修改电话号码成功"
+// @Failure 400 {string} string "非法参数"
+// @Failure 500 {string} string "失败"
+// @Router /btc/wallet/phone/ [put]
+func UpdatePhoneNumberApi(c *gin.Context)  {
+	walletId := c.PostForm("walletid")
+	log.Println("传入的钱包Id:",walletId)
+
+	if "" == walletId {
+		log.Println("钱包Id不能为空")
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "缺少参数：walletid",
+		})
+		return
+	}
+
+	phoneNumber := c.PostForm("phone")
+	log.Println("传入的电话号码：",phoneNumber)
+
+	if !model.CheckPhoneNumber(phoneNumber) {
+		log.Println("非法的电话号码")
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "非法的电话号码",
+		})
+		return
+	}
+
+	walletId_Int,err := strconv.Atoi(walletId)
+	if nil != err {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "非法的walletid",
+		})
+		return
+	}
+
+	wallet := model.Wallet{}
+
+	if !wallet.UpdatePhoneNumber(phoneNumber,walletId_Int) {
+		c.JSON(http.StatusInternalServerError,gin.H{
+			"status": 1,
+			"msg":    "修改电话号码失败",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK,gin.H{
+		"status": 0,
+		"msg":    "修改电话号码成功",
+	})
+
+}
+
 
 // @Summary 获取余额(比特币)
 // @Produce  json
@@ -19,6 +170,7 @@ import (
 // @Failure 500 {string} string "failed"
 // @Router /bth/balance/ [post]
 func GetBalanceApi(c *gin.Context)  {
+
 	address := c.PostForm("address")
 	log.Println("查询余额的地址：",address)
 	if "" == address {
@@ -27,6 +179,7 @@ func GetBalanceApi(c *gin.Context)  {
 			"status": 1,
 			"msg":    "缺少参数：address",
 		})
+		return
 	}
 
 
@@ -42,9 +195,7 @@ func GetBalanceApi(c *gin.Context)  {
 	req.SetHeaders(map[string]string{
 		"Content-Type": "application/x-www-form-urlencoded", //这也是HttpRequest包的默认设置
 	})
-	res,err := req.Get(api, map[string]interface{}{
-		//"address":address,
-	})
+	res,err := req.Get(api, map[string]interface{}{})
 
 	if nil != err {
 		log.Println(err)
@@ -81,21 +232,7 @@ func GetBalanceApi(c *gin.Context)  {
 	log.Println(body)
 
 
-	resMap := make(map[string]interface{})
-	err = json.Unmarshal(body,&resMap)
-	if nil != err {
-		log.Println(err)
-		log.Println(err)
-		c.JSON(res.StatusCode(),gin.H{
-			"status": 1,
-			"err":err,
-			"msg":    "查询失败！",
-		})
-		return
-	}
-
-
-	var txInfo models.TxInfo
+	var txInfo model.TxInfo
 	err = json.Unmarshal(body,&txInfo)
 	if err != nil {
 		c.JSON(res.StatusCode(),gin.H{
@@ -106,7 +243,7 @@ func GetBalanceApi(c *gin.Context)  {
 		return
 	}
 
-	finalBalance,err := models.BalanceByAddress(address,txInfo)
+	finalBalance,err := model.BalanceByAddress(address,txInfo)
 	if err != nil {
 		c.JSON(res.StatusCode(),gin.H{
 			"status": 1,
@@ -116,13 +253,116 @@ func GetBalanceApi(c *gin.Context)  {
 		return
 	}
 
+	log.Println("余额：",finalBalance.String())
 
-	log.Println(resMap)
+
+
+	btcBalance := model.BitcoinBalance{}
+	btcBalance.Num = 0.0
+	btcBalance.Price_USD = 0.0
+	btcBalance.Total_USD = 0.0
+	btcBalance.Price_CNY = 0.0
+	btcBalance.Total_CNY = 0.0
+
+	finalBalanceFloat,_ := finalBalance.Round(8).Float64()
+	ammount,err := strconv.ParseFloat(fmt.Sprintf("%.8f", finalBalanceFloat), 64)
+	if nil == err {
+		btcBalance.Num = ammount
+	}
+
+
+	// 获取价格信息
+	priceMap := getPrice("USD","BTC")
+	// 设置USD价格信息
+	usdPrice,exists := priceMap["USD"]
+	if exists {
+		if "" != usdPrice {
+			// 把字符串转换成decimal
+			usdPriceDecimal,err := decimal.NewFromString(usdPrice)
+			if nil == err {
+				usdPriceFloatTmp,_ := usdPriceDecimal.Round(2).Float64()
+				usdPriceFloat,err := strconv.ParseFloat(fmt.Sprintf("%.8f", usdPriceFloatTmp), 64)
+				if nil == err {
+					btcBalance.Price_USD = usdPriceFloat
+				}
+
+				total_USDDecimal := usdPriceDecimal.Mul(finalBalance)
+				total_USD_FloatTmp,_ := total_USDDecimal.Round(2).Float64()
+				total_USD_Float, err := strconv.ParseFloat(fmt.Sprintf("%.8f", total_USD_FloatTmp), 64)
+				if nil == err {
+					btcBalance.Total_USD = total_USD_Float
+				}
+			}
+		}
+	}
+
+	// 设置CNY价格信息
+	priceMap = getPrice("CNY","BTC")
+	cnyPrice,exists := priceMap["CNY"]
+	if exists {
+		if "" != usdPrice {
+			// 把字符串转换成decimal
+			cnyPriceDecimal,err := decimal.NewFromString(cnyPrice)
+			if nil == err {
+				cnyPriceFloatTmp,_ := cnyPriceDecimal.Round(2).Float64()
+				cnyPriceFloat,err := strconv.ParseFloat(fmt.Sprintf("%.8f", cnyPriceFloatTmp), 64)
+				if nil == err {
+					btcBalance.Price_CNY = cnyPriceFloat
+				}
+
+				total_CNYDecimal := cnyPriceDecimal.Mul(finalBalance)
+				total_CNY_FloatTmp,_  := total_CNYDecimal.Round(2).Float64()
+				total_CNY_Float,err := strconv.ParseFloat(fmt.Sprintf("%.8f", total_CNY_FloatTmp), 64)
+				if nil == err {
+					btcBalance.Total_CNY = total_CNY_Float
+				}
+			}
+		}
+	}
+
+
 	c.JSON(res.StatusCode(),gin.H{
 		"status": 0,
 		"msg":    "查询成功！",
-		"data":finalBalance,
+		"data":btcBalance,
 	})
 
 
 }
+
+func getPrice(currency string,symbols string) map[string]string {
+	var priceMap  = make(map[string]string)
+	if "" == currency || "" == symbols {
+		log.Println("参数不能为空")
+		return priceMap
+	}
+
+	req := HttpRequest.NewRequest()
+	req.SetHeaders(map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded", //这也是HttpRequest包的默认设置
+	})
+	res,err := req.Get("https://api.trustwalletapp.com/prices?currency=" + currency + "&symbols=" + symbols, map[string]interface{}{})
+	if nil != err {
+		log.Println(err)
+		return priceMap
+	}
+	body,err := res.Body()
+	if nil != err {
+		return priceMap
+	}
+	var resMap map[string]interface{}
+	err = json.Unmarshal(body,&resMap)
+	if nil == err {
+		if response,ok := resMap["response"].([]interface{});ok {
+			for _,perContent := range response {
+				if content,ok := perContent.(map[string]interface{});ok {
+					price := content["price"].(string)
+					priceMap[currency] = price
+				}
+			}
+		}
+	}
+
+	return priceMap
+}
+

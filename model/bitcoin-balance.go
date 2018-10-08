@@ -1,4 +1,4 @@
-package models
+package model
 
 /*
 "bgft_balance": 53.4,
@@ -11,10 +11,10 @@ package models
  */
 
  type BitcoinBalance struct {
- 	num float64
- 	price_CNY float64
- 	price_USD float64
- 	total_CNY float64
- 	total_USD float64
- 	url string
+ 	Num float64
+ 	Price_CNY float64
+ 	Price_USD float64
+ 	Total_CNY float64
+ 	Total_USD float64
+ 	//Url string
  }

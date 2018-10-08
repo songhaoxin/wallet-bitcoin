@@ -1,11 +1,10 @@
-package models
+package model
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/shopspring/decimal"
 	"log"
-	"strconv"
 )
 
 type Prev_out struct {
@@ -64,39 +63,42 @@ type TxInfo struct {
 }
 
 
-func BalanceByAddress(address string,txInfo TxInfo) (balance float64,err error)  {
-	balance = 0.0
+func BalanceByAddress(address string,txInfo TxInfo) (balance decimal.Decimal,err error)  {
 
 	if "" == address {
 		err = fmt.Errorf("%s", "地址不能为空")
 		return
 	}
 
+	balance, _ = decimal.NewFromString("0")
 	base,_ := decimal.NewFromString("100000000")
-	finalBalaceValue,err := decimal.NewFromString(txInfo.Final_balance.String())
+
+	balance,err = decimal.NewFromString(txInfo.Final_balance.String())
 	if nil != err {return }
 
-	finalBalaceValue = finalBalaceValue.Div(base)
-	balance,_ = finalBalaceValue.Float64()
+	balance = balance.Div(base)
 
 	shouldChangeValue := CalculateBalanceShouldChangedByAddress(address,txInfo.Txs)
 
-	balance = balance + shouldChangeValue
-	balance,_ = strconv.ParseFloat(fmt.Sprintf("%.8f", balance), 64)
-	fmt.Println(balance)
+	balance = balance.Add(shouldChangeValue)
+
+	//balance,_ = strconv.ParseFloat(fmt.Sprintf("%.8f", balance), 64)
+
+	fmt.Println("余额：",balance.String())
 
 	return
 }
 
-func CalculateBalanceShouldChangedByAddress(address string,txs []Tx) (balanceChanged float64) {
-	balanceChanged = 0.0
+func CalculateBalanceShouldChangedByAddress(address string,txs []Tx) (shouldChangeValue decimal.Decimal) {
+
 	if 0 == len(txs) {
 		log.Println("交易信息为空")
 		return
 	}
 
+	//balanceChanged,_ = decimal.NewFromString("0")
 	// 需要调整的余额数量
-	shouldChangeValue,_ := decimal.NewFromString("0")
+	shouldChangeValue,_ = decimal.NewFromString("0")
 
 	base,_ := decimal.NewFromString("100000000")
 
@@ -148,10 +150,8 @@ func CalculateBalanceShouldChangedByAddress(address string,txs []Tx) (balanceCha
 		}
 	}
 
-	balanceChanged,_ = shouldChangeValue.Float64()
-	//log.Println("原数：",balanceChanged)
-	//value := math.Trunc(balanceChanged*1e6 + 0.5)*1e-6
-	//log.Println("转换后：",value)
+	log.Println("需要调整的余额",shouldChangeValue.String())
+
 	return
 }
 
