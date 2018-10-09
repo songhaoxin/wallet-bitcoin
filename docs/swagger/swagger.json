@@ -2,13 +2,105 @@
     "swagger": "2.0",
     "info": {
         "description": "This is a sample server Petstore server.",
-        "title": "Swagger Example API",
+        "title": "Bitcoin Wallet API",
         "contact": {},
         "license": {},
         "version": "1.0"
     },
     "paths": {
-        "/btc/wallet/accounts/": {
+        "/btc/v1/account/balance/": {
+            "get": {
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "获取余额",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "比特币帐户地址",
+                        "name": "address",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/btc/v1/account/transactions/": {
+            "get": {
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "获取交易列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "比特币帐户地址",
+                        "name": "address",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "起始页",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "最多获取的记录总数",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/btc/v1/wallet/accounts/": {
             "post": {
                 "consumes": [
                     "application/x-www-form-urlencoded"
@@ -55,7 +147,7 @@
                 }
             }
         },
-        "/btc/wallet/phone/": {
+        "/btc/v1/wallet/phone/": {
             "put": {
                 "consumes": [
                     "application/x-www-form-urlencoded"
@@ -95,46 +187,6 @@
                     },
                     "500": {
                         "description": "失败",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/bth/balance/": {
-            "post": {
-                "consumes": [
-                    "application/x-www-form-urlencoded"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "获取余额(比特币)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "比特币帐户地址",
-                        "name": "address",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "ok",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "failed",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "failed",
                         "schema": {
                             "type": "string"
                         }

@@ -2,10 +2,70 @@ info:
   contact: {}
   description: This is a sample server Petstore server.
   license: {}
-  title: Swagger Example API
+  title: Bitcoin Wallet API
   version: "1.0"
 paths:
-  /btc/wallet/accounts/:
+  /btc/v1/account/balance/:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      parameters:
+      - description: 比特币帐户地址
+        in: query
+        name: address
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: failed
+          schema:
+            type: string
+        "500":
+          description: failed
+          schema:
+            type: string
+      summary: 获取余额
+  /btc/v1/account/transactions/:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      parameters:
+      - description: 比特币帐户地址
+        in: query
+        name: address
+        required: true
+        type: string
+      - description: 起始页
+        in: query
+        name: offset
+        type: string
+      - description: 最多获取的记录总数
+        in: query
+        name: limit
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: failed
+          schema:
+            type: string
+        "500":
+          description: failed
+          schema:
+            type: string
+      summary: 获取交易列表
+  /btc/v1/wallet/accounts/:
     post:
       consumes:
       - application/x-www-form-urlencoded
@@ -36,7 +96,7 @@ paths:
           schema:
             type: string
       summary: 向钱包增加BTC帐户
-  /btc/wallet/phone/:
+  /btc/v1/wallet/phone/:
     put:
       consumes:
       - application/x-www-form-urlencoded
@@ -67,30 +127,4 @@ paths:
           schema:
             type: string
       summary: 修改钱包的电话号码
-  /bth/balance/:
-    post:
-      consumes:
-      - application/x-www-form-urlencoded
-      parameters:
-      - description: 比特币帐户地址
-        in: formData
-        name: address
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: ok
-          schema:
-            type: string
-        "400":
-          description: failed
-          schema:
-            type: string
-        "500":
-          description: failed
-          schema:
-            type: string
-      summary: 获取余额(比特币)
 swagger: "2.0"

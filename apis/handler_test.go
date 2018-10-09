@@ -11,6 +11,9 @@ func TestGetBalanceApi(t *testing.T) {
 }
 
 func TestAddBtcAccount(t *testing.T) {
-	AddBtcAccount(nil)
 	fmt.Println("abc")
+}
+
+func TestGetBtcTransactionsApi(t *testing.T) {
+	GetBtcTransactionsApi(nil)
 }

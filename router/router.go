@@ -14,13 +14,16 @@ func InitRouter() *gin.Engine {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	/// 获取BTC帐户的余额
-	router.POST("/btc/account/balance/",GetBalanceApi)
+	router.GET("/btc/v1/account/balance/", GetBtcBalanceApi)
+
+	/// 获取交易列表
+	router.GET("/btc/v1/account/transactions/",GetBtcTransactionsApi)
 
 	/// 向指定的钱包添加BTC帐户
-	router.POST("/btc/wallet/accounts/",AddBtcAccountApi)
+	router.POST("/btc/v1/wallet/accounts/",AddBtcAccountApi)
 
 	/// 修改钱包的电话号码
-	router.PUT("/btc/wallet/phone/",UpdatePhoneNumberApi)
+	router.PUT("/btc/v1/wallet/phone/",UpdatePhoneNumberApi)
 
 	return router
 }

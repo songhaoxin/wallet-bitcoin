@@ -25,7 +25,7 @@ import (
 // @Success 201 {string} string    "添加BTC帐户成功"
 // @Failure 400 {string} string "非法参数"
 // @Failure 500 {string} string "失败"
-// @Router /btc/wallet/accounts/ [post]
+// @Router /btc/v1/wallet/accounts/ [post]
 func AddBtcAccountApi(c *gin.Context)  {
 	walletId := c.PostForm("walletid")
 	log.Println("传入的钱包Id:",walletId)
@@ -107,7 +107,7 @@ func AddBtcAccountApi(c *gin.Context)  {
 // @Success 200 {string} string    "修改电话号码成功"
 // @Failure 400 {string} string "非法参数"
 // @Failure 500 {string} string "失败"
-// @Router /btc/wallet/phone/ [put]
+// @Router /btc/v1/wallet/phone/ [put]
 func UpdatePhoneNumberApi(c *gin.Context)  {
 	walletId := c.PostForm("walletid")
 	log.Println("传入的钱包Id:",walletId)
@@ -161,17 +161,18 @@ func UpdatePhoneNumberApi(c *gin.Context)  {
 }
 
 
-// @Summary 获取余额(比特币)
+// @Summary 获取余额
 // @Produce  json
 // @Accept  application/x-www-form-urlencoded
-// @Param   address     formData    string     true        "比特币帐户地址"
+// @Param   address     query    string     true        "比特币帐户地址"
 // @Success 200 {string} string    "ok"
 // @Failure 400 {string} string "failed"
 // @Failure 500 {string} string "failed"
-// @Router /bth/balance/ [post]
-func GetBalanceApi(c *gin.Context)  {
+// @Router /btc/v1/account/balance/ [get]
+func GetBtcBalanceApi(c *gin.Context)  {
 
-	address := c.PostForm("address")
+	//address := c.PostForm("address")
+	address := c.Request.URL.Query().Get("address")
 	log.Println("查询余额的地址：",address)
 	if "" == address {
 		log.Println("查询地址不能为空")
@@ -245,7 +246,7 @@ func GetBalanceApi(c *gin.Context)  {
 
 	finalBalance,err := model.BalanceByAddress(address,txInfo)
 	if err != nil {
-		c.JSON(res.StatusCode(),gin.H{
+		c.JSON(http.StatusInternalServerError,gin.H{
 			"status": 1,
 			"err":err,
 			"msg":    "查询失败！",
@@ -365,4 +366,124 @@ func getPrice(currency string,symbols string) map[string]string {
 
 	return priceMap
 }
+
+// @Summary 获取交易列表
+// @Produce  json
+// @Accept  application/x-www-form-urlencoded
+// @Param   address     query    string     true        "比特币帐户地址"
+// @Param   offset      query    string     false        "起始页"
+// @Param   limit      	query    string     false        "最多获取的记录总数"
+// @Success 200 {string} string    "ok"
+// @Failure 400 {string} string "failed"
+// @Failure 500 {string} string "failed"
+// @Router /btc/v1/account/transactions/ [get]
+func GetBtcTransactionsApi(c *gin.Context)  {
+
+	address := c.Request.URL.Query().Get("address")
+	log.Println("输入地址：",address)
+	if "" == address {
+		log.Println("查询地址不能为空")
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "缺少参数：address",
+		})
+		return
+	}
+
+	offset := c.Request.URL.Query().Get("offset")
+	limit := c.Request.URL.Query().Get("limit")
+
+
+	var api string
+	if setting.IsDebugEnv {
+		api = setting.BthApiServerHostDebug + "rawaddr/"
+	} else {
+		api = setting.BthApiServerHost + "rawaddr/"
+	}
+	api = api + address
+	if "" != offset {
+		api = api + "?offset=" + offset
+	}
+	if "" != limit {
+		if "" == offset {
+			api = api + "?limit=" + limit
+		} else {
+			api = api + "&limit=" + limit
+		}
+	}
+	log.Println(api)
+
+	req := HttpRequest.NewRequest()
+	req.SetHeaders(map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded", //这也是HttpRequest包的默认设置
+	})
+	res,err := req.Get(api, map[string]interface{}{})
+
+	if nil != err {
+		log.Println(err)
+		var code int
+		var errStr string = err.Error()
+		if nil == res {
+			code = 500
+			errStr = "无法连接到服务"
+		} else {
+			log.Println(res.StatusCode())
+			code = res.StatusCode()
+		}
+
+		c.JSON(code,gin.H{
+			"status": 1,
+			"err":errStr,
+			"msg":    "查询失败！",
+		})
+		return
+	}
+
+	log.Println(res.StatusCode())
+
+	body,err := res.Body()
+	if nil != err {
+		log.Println(err)
+		c.JSON(res.StatusCode(),gin.H{
+			"status": 1,
+			"err":err,
+			"msg":    "查询失败！",
+		})
+		return
+	}
+	//log.Println(body)
+
+
+	var txInfo model.TxInfo
+	err = json.Unmarshal(body,&txInfo)
+	if err != nil {
+		c.JSON(res.StatusCode(),gin.H{
+			"status": 1,
+			"err":err,
+			"msg":    "查询失败！",
+		})
+		return
+	}
+
+	// 获取具体的交易信息列表
+	trs,err := model.GetBtcTransaction(address,txInfo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError,gin.H{
+			"status": 1,
+			"err":"服务错误",
+			"msg":    "查询失败！",
+		})
+		return
+	}
+
+
+	c.JSON(http.StatusOK,gin.H{
+		"status": 0,
+		"data":trs,
+		"msg":    "查询成功！",
+	})
+
+
+}
+
 
