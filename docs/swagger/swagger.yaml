@@ -65,6 +65,55 @@ paths:
           schema:
             type: string
       summary: 获取交易列表
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      parameters:
+      - description: 交易的签名后字符串
+        in: formData
+        name: tx
+        required: true
+        type: string
+      - description: 发送方地址
+        in: formData
+        name: from
+        required: true
+        type: string
+      - description: 接收方地址
+        in: formData
+        name: to
+        required: true
+        type: string
+      - description: 矿工费
+        in: formData
+        name: fee
+        required: true
+        type: string
+      - description: 交易额
+        in: formData
+        name: amount
+        required: true
+        type: string
+      - description: 备注
+        in: formData
+        name: remark
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: failed
+          schema:
+            type: string
+        "500":
+          description: failed
+          schema:
+            type: string
+      summary: 发送交易
   /btc/v1/wallet/accounts/:
     post:
       consumes:

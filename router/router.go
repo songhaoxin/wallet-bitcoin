@@ -19,6 +19,9 @@ func InitRouter() *gin.Engine {
 	/// 获取交易列表
 	router.GET("/btc/v1/account/transactions/",GetBtcTransactionsApi)
 
+	/// 发送交易
+	router.POST("/btc/v1/account/transactions/",SendTransactionApi)
+
 	/// 向指定的钱包添加BTC帐户
 	router.POST("/btc/v1/wallet/accounts/",AddBtcAccountApi)
 

@@ -7,14 +7,15 @@ import (
 	"github.com/jmoiron/sqlx"
 	"time"
 	"regexp"
+	"wallet-bitcoin/setting"
 )
 
-const ServerDBConnectString  = "root:current@tcp(47.75.194.231)/multi_wallet?charset=utf8&parseTime=True&loc=Local"
+
 
 var Db *sqlx.DB
 
 func init() {
-	database,err := sqlx.Open("mysql",ServerDBConnectString)
+	database,err := sqlx.Open("mysql",setting.ServerDBConnectString)
 	if nil != err {
 		log.Println("open mysql failed",err)
 		return

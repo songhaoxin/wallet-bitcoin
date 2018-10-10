@@ -4,6 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"log"
 	"github.com/shopspring/decimal"
+	"wallet-bitcoin/setting"
 )
 
 
@@ -22,19 +23,11 @@ var db *gorm.DB
 
 func init() {
 	var err error
-	db,err = gorm.Open("mysql",ServerDBConnectString)
+	db,err = gorm.Open("mysql",setting.ServerDBConnectString)
 	if nil != err{
 		log.Println(err)
 		return
 	}
-	/*
-	else {
-		//db.DB().SetMaxIdleConns(10)
-		//db.DB().SetMaxOpenConns(100)
-		//if !db.HasTable(&BtcTransactionInfo{}) {
-			//db.CreateTable(&BitTransactionInfo{})
-		//}
-	}*/
 
 	db.AutoMigrate(&BtcTransactionInfo{})
 }
@@ -43,13 +36,21 @@ func InitBtcTransactionInfo() *BtcTransactionInfo {
 	return &BtcTransactionInfo{}
 }
 
-
-func (btf *BtcTransactionInfo) RemarkInfo() string  {
-	return ""
+/// 持久化到数据库
+func (btf *BtcTransactionInfo) Store2Db()  error {
+	if err := db.Create(btf).Error;err != nil {
+		return err
+	}
+	return nil
 }
 
-func GetRemarkInfo() string  {
-	return ""
+
+
+func GetRemarkInfo(hash string) string  {
+	var info = &BtcTransactionInfo{}
+	db.Where("hash = ?", hash).First(info)
+
+	return info.Remark
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -72,12 +73,21 @@ func GetBtcTransaction(address string,info TxInfo) (trs []BtcTransaction,err err
 	trs = make([]BtcTransaction,0)
 
 	for _,tx := range info.Txs {
+
 		btcTx := BtcTransaction{}
 		btcTx.Hash = tx.Hash
 		btcTx.FromAddress,btcTx.ToAddress = GetTransactionParti(address,tx)
+
+		//过虑掉别人发的币，但还没有被打包确认的记录
+		if btcTx.ToAddress == address && "" == tx.Block_height {
+			continue
+		}
+
 		btcTx.Fee,btcTx.Amount = GetFeeAmount(address,tx)
 		btcTx.IsConfirm = (tx.Block_height.String() != "")
-		btcTx.Remark = GetRemarkInfo()
+
+		// 从自己平台获取交易的备注信息
+		btcTx.Remark = GetRemarkInfo(btcTx.Hash)
 
 		trs = append(trs,btcTx)
 	}
@@ -87,7 +97,7 @@ func GetBtcTransaction(address string,info TxInfo) (trs []BtcTransaction,err err
 }
 
 // 获取交易的双方地址
-// 假设所有的交易只
+// 假设所有的交易只有一笔
 func GetTransactionParti(address string,tx Tx) (from string,to string)  {
 	from = ""
 	to = ""

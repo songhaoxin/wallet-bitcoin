@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"fmt"
 
+	"wallet-bitcoin/helper"
 )
 
 
@@ -186,9 +187,9 @@ func GetBtcBalanceApi(c *gin.Context)  {
 
 	var api string
 	if setting.IsDebugEnv {
-		api = setting.BthApiServerHostDebug + "rawaddr/"
+		api = setting.BtcApiServerHostDebug + "rawaddr/"
 	} else {
-		api = setting.BthApiServerHost + "rawaddr/"
+		api = setting.BtcApiServerHost + "rawaddr/"
 	}
 	api = api + address
 
@@ -396,9 +397,9 @@ func GetBtcTransactionsApi(c *gin.Context)  {
 
 	var api string
 	if setting.IsDebugEnv {
-		api = setting.BthApiServerHostDebug + "rawaddr/"
+		api = setting.BtcApiServerHostDebug + "rawaddr/"
 	} else {
-		api = setting.BthApiServerHost + "rawaddr/"
+		api = setting.BtcApiServerHost + "rawaddr/"
 	}
 	api = api + address
 	if "" != offset {
@@ -425,7 +426,7 @@ func GetBtcTransactionsApi(c *gin.Context)  {
 		var errStr string = err.Error()
 		if nil == res {
 			code = 500
-			errStr = "无法连接到服务"
+			errStr = "服务器内部错误"
 		} else {
 			log.Println(res.StatusCode())
 			code = res.StatusCode()
@@ -483,7 +484,87 @@ func GetBtcTransactionsApi(c *gin.Context)  {
 		"msg":    "查询成功！",
 	})
 
-
 }
 
+// @Summary 发送交易
+// @Produce  json
+// @Accept  application/x-www-form-urlencoded
+// @Param   tx       formData    string     true      "交易的签名后字符串"
+// @Param   from     formData    string     true      "发送方地址"
+// @Param   to       formData    string     true      "接收方地址"
+// @Param   fee      formData    string     true      "矿工费"
+// @Param   amount   formData    string     true      "交易额"
+// @Param   remark   formData    string     false     "备注"
+// @Success 200 {string} string    "ok"
+// @Failure 400 {string} string "failed"
+// @Failure 500 {string} string "failed"
+// @Router /btc/v1/account/transactions/ [post]
+func SendTransactionApi(c *gin.Context) {
 
+	tx := c.PostForm("tx")
+	log.Println("传入的交易tx:", tx)
+
+	if "" == tx {
+		log.Println("交易tx不能为空")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": 1,
+			"msg":    "缺少参数：tx",
+		})
+		return
+	}
+
+	var parmas= []string{tx}
+
+	res, err := helper.RpcBtcPort(setting.BtcPortHostDebug, "sendrawtransaction", parmas)
+	if nil != err {
+		c.JSON(500, gin.H{
+			"status": 1,
+			"err":    err,
+			"msg":    "提交交易失败",
+		})
+		return
+	}
+
+	resMap, _ := res.(map[string]interface{})
+	result := resMap["result"]
+
+	// 交易失败
+	if nil == result {
+		resErr := resMap["error"]
+		c.JSON(500, gin.H{
+			"status": 1,
+			"err":    resErr,
+			"msg":    "提交交易失败",
+		})
+		return
+	}
+
+
+	hash,_ := result.(string)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"status": 0,
+		"hash":    hash,
+		"msg":    "提交交易成功",
+	})
+
+	//把交易后数据保存到数据库中
+	from := c.PostForm("from")
+	to := c.PostForm("to")
+	amount := c.PostForm("amount")
+	fee := c.PostForm("fee")
+	remark := c.PostForm("remark")
+
+	btcinfo :=  model.BtcTransactionInfo{}
+	btcinfo.Hash = hash
+	btcinfo.FromAddress = from
+	btcinfo.ToAddress = to
+	btcinfo.Amount = amount
+	btcinfo.Fee = fee
+	btcinfo.Remark = remark
+
+
+	btcinfo.Store2Db()
+
+
+}

@@ -17,3 +17,7 @@ func TestAddBtcAccount(t *testing.T) {
 func TestGetBtcTransactionsApi(t *testing.T) {
 	GetBtcTransactionsApi(nil)
 }
+
+func TestSendTransactionApi(t *testing.T) {
+
+}
