@@ -4,6 +4,7 @@ import (
 	"testing"
 	"wallet-bitcoin/setting"
 	"log"
+	"fmt"
 )
 
 func TestRpcBtcPort(t *testing.T) {
@@ -21,5 +22,44 @@ func TestRpcBtcPort(t *testing.T) {
 		}
 	}
 
+}
 
+
+type query func(string) string
+
+func exec(name string,vs ...query) string  {
+	ch := make(chan string)
+	fn := func(i int) {
+		ch <- vs[i](name)
+	}
+
+	for i,_ := range vs {
+		go fn(i)
+	}
+	return <- ch
+}
+
+func TestPeople_String(t *testing.T) {
+	//p := &People{}
+	//p.String()
+
+	ret := exec("111",
+
+		func(s string) string {
+			return s + "func1"
+		},
+
+		func(s string) string {
+			return s + "func2"
+		},
+
+		func(s string) string {
+			return s + "fun3"
+		},
+		
+		func(s string) string {
+			return s + "fun4"
+		})
+
+	fmt.Println(ret)
 }

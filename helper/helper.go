@@ -61,3 +61,12 @@ func BtcRpcPost(url string, send map[string]interface{}) ([]byte, error) {
 	return respBytes, nil
 
 }
+
+type People struct {
+	Name string
+}
+
+func (p *People) String() string {
+	return fmt.Sprint("print:%v",p)
+
+}

@@ -32,9 +32,93 @@ func Init() *Wallet {
 	return &Wallet{}
 }
 
+// 根据钱包 id 删除钱包
+func RemoveWallet(walletId int64) bool {
+	conn,err := Db.Begin()
+
+	if nil != err {
+		log.Println(err)
+		return false
+	}
+	// 先删除对应钱包的所有的币种信息列表
+	stmt1,_ := Db.Prepare("DELETE FROM coin_address WHERE wallet_id_id=?")
+	defer stmt1.Close()
+	ret,err := stmt1.Exec(walletId)
+	if nil != err {
+		log.Println(err)
+		conn.Rollback()
+		return false
+	}
+
+	// 再删除钱包信息
+	stmt2,_ := Db.Prepare("DELETE FROM wallet WHERE id=?")
+	defer stmt2.Close()
+	ret,err = stmt2.Exec(walletId)
+	if nil != err {
+		log.Println(err)
+		conn.Rollback()
+		return false
+	}
+
+	if RowsAffected, err := ret.RowsAffected(); nil == err {
+		log.Println("RowsAffected:", RowsAffected)
+	}
+
+	return true
+}
 
 
-func (w *Wallet) AddBtcAccount(walletId int,address string) bool {
+// 根据钱包 ID 及 币种(ETH/BTC) 删除相关信息 实际上用不上
+func RemoveAccount(walletId int64,coinType string) bool  {
+	if (coinType != "BTC") && (coinType != "ETH") { return false}
+	//var walletIdStr string = strconv.FormatInt(walletId,10)
+
+	conn,err := Db.Begin()
+
+	if nil != err {
+		log.Println(err)
+		return false
+	}
+
+	stmt,_ := Db.Prepare("DELETE FROM coin_address WHERE wallet_id_id=?")
+	defer stmt.Close()
+
+	//执行删除操作
+	ret,err := stmt.Exec(walletId)
+	if nil != err {
+		log.Println(err)
+		conn.Rollback()
+		return false
+	}
+
+	if RowsAffected, err := ret.RowsAffected(); nil == err {
+		log.Println("RowsAffected:", RowsAffected)
+	}
+
+	// 查看钱包中是否还存在 帐户，
+	var address string
+	err = Db.QueryRow("SELECT wallet_id_id FROM coin_address WHERE wallet_id_id=? LIMIT 1",walletId).Scan(&address)
+	if nil != err {
+		return false
+	}
+	if "" == address {
+		ret,err := Db.Exec("DELETE FROM wallet where id=?",walletId)
+		if nil != err {
+			log.Println(err)
+			conn.Rollback()
+		}
+		if RowsAffected, err := ret.RowsAffected(); nil == err {
+			log.Println("RowsAffected:", RowsAffected)
+		}
+	}
+
+	return true
+}
+
+
+
+
+func (w *Wallet) AddBtcAccount(walletId int64,address string) bool {
 	stmt,_ := Db.Prepare("INSERT INTO coin_address (`wallet_id_id`,`address`,`type`,`created_time`) VALUES (?,?,?,?)")
 	defer stmt.Close()
 
@@ -55,7 +139,7 @@ func (w *Wallet) AddBtcAccount(walletId int,address string) bool {
 }
 
 // 指定的地址是否存在了BTC
-func (w *Wallet) IsExistBtc(walletId int,address string) bool  {
+func (w *Wallet) IsExistBtc(walletId int64,address string) bool  {
 
 	if nil == Db {
 		log.Println("open mysql failed")
@@ -72,7 +156,7 @@ func (w *Wallet) IsExistBtc(walletId int,address string) bool  {
 	return true
 }
 
-func (w *Wallet) IsExistWallet(walletId int) bool {
+func (w *Wallet) IsExistWallet(walletId int64) bool {
 
 	if nil == Db {
 		log.Println("open mysql failed")
@@ -88,6 +172,8 @@ func (w *Wallet) IsExistWallet(walletId int) bool {
 	return true
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////
 func (w *Wallet) UpdatePhoneNumber(phoneNumber string,walletId int) bool {
 	if nil == Db {
 		log.Println("open mysql failed")

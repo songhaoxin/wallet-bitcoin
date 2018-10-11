@@ -13,11 +13,17 @@ func InitRouter() *gin.Engine {
 	/// Swagger UI 相关API
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	/// 删除钱包
+	router.DELETE("/btc/v1/wallets/",RemoveWalletApi)
+
 	/// 获取BTC帐户的余额
 	router.GET("/btc/v1/account/balance/", GetBtcBalanceApi)
 
 	/// 获取交易列表
 	router.GET("/btc/v1/account/transactions/",GetBtcTransactionsApi)
+
+	/// 获取未花交易列表
+	router.GET("/btc/v1/account/unspents/",GetUnspentList)
 
 	/// 发送交易
 	router.POST("/btc/v1/account/transactions/",SendTransactionApi)

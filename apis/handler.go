@@ -17,8 +17,7 @@ import (
 
 
 
-
-// @Summary 向钱包增加BTC帐户
+// @Summary 向钱包增加BTC帐户（因产品设计成比特币与以太币分开为单独的钱包，故该API用不上）
 // @Produce  json
 // @Accept  application/x-www-form-urlencoded
 // @Param   walletid     formData    int     true        "钱包的Id"
@@ -39,7 +38,7 @@ func AddBtcAccountApi(c *gin.Context)  {
 		})
 		return
 	}
-	walletId_Int,err := strconv.Atoi(walletId)
+	walletId_Int,err := strconv.ParseInt(walletId, 10, 64)//strconv.Atoi(walletId)
 	if nil != err {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest,gin.H{
@@ -99,6 +98,70 @@ func AddBtcAccountApi(c *gin.Context)  {
 
 }
 
+// @Summary 根据指定的钱包Id删除钱包
+// @Produce  json
+// @Accept  application/x-www-form-urlencoded
+// @Param   id     formData    int     true        "钱包的Id"
+// @Success 204 {string} string    "删除钱包成功"
+// @Failure 400 {string} string "非法参数"
+// @Failure 500 {string} string "失败"
+// @Router /btc/v1/wallets/ [delete]
+func RemoveWalletApi(c *gin.Context)  {
+	//walletId := c.Param("id")
+	//walletId := c.Request.FormValue("id")
+	//log.Println("传入的钱包Id:",walletId)
+	//xxx := c.Param("id")
+	//log.Println(xxx)
+
+	walletId := c.PostForm("id")
+	log.Println(walletId)
+
+
+	if "" == walletId {
+		log.Println("钱包Id不能为空")
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "缺少参数：walletid",
+		})
+		return
+	}
+
+	walletId_Int,err := strconv.ParseInt(walletId, 10, 64)
+	if nil != err {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "非法的 walletid",
+		})
+		return
+	}
+
+	wallet := model.Wallet{}
+
+	if !wallet.IsExistWallet(walletId_Int) {
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "要删除的 walletid 不存在",
+		})
+		return
+	}
+
+	state := model.RemoveWallet(walletId_Int)
+	if !state {
+		c.JSON(500,gin.H{
+			"status": 1,
+			"msg":    "钱包删除失败",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK,gin.H{
+		"status": 0,
+		"msg":    "钱包删除成功",
+	})
+
+
+}
 
 // @Summary 修改钱包的电话号码
 // @Produce  json
@@ -563,8 +626,89 @@ func SendTransactionApi(c *gin.Context) {
 	btcinfo.Fee = fee
 	btcinfo.Remark = remark
 
-
 	btcinfo.Store2Db()
+}
 
+func GetMinerFee()(l float32,h float32)  {
+	return 
+}
 
+// @Summary 获取未花列表
+// @Produce  json
+// @Accept  application/x-www-form-urlencoded
+// @Param   address     query    string     true        "比特币帐户地址"
+// @Success 200 {string} string    "ok"
+// @Failure 400 {string} string "failed"
+// @Failure 500 {string} string "failed"
+// @Router /btc/v1/account/unspents/ [get]
+func GetUnspentList(c *gin.Context)  {
+	address := c.Request.URL.Query().Get("address")
+	log.Println("输入地址：",address)
+	if "" == address {
+		log.Println("查询地址不能为空")
+		c.JSON(http.StatusBadRequest,gin.H{
+			"status": 1,
+			"msg":    "缺少参数：address",
+		})
+		return
+	}
+
+	req := HttpRequest.NewRequest()
+	req.SetHeaders(map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded", //这也是HttpRequest包的默认设置
+	})
+	res,err := req.Post(setting.GetBtcApiHost() + "unspent", map[string]interface{}{
+		"active":address,
+	})
+
+	if nil != err {
+		log.Println(err)
+		var code int
+		var errStr string = err.Error()
+		if nil == res {
+			code = 500
+			errStr = "服务器内部错误"
+		} else {
+			log.Println(res.StatusCode())
+			code = res.StatusCode()
+		}
+
+		c.JSON(code,gin.H{
+			"status": 1,
+			"err":errStr,
+			"msg":    "查询失败！",
+		})
+		return
+	}
+
+	body,err := res.Body()
+	if nil != err {
+		log.Println(err)
+		c.JSON(res.StatusCode(),gin.H{
+			"status": 1,
+			"err":err,
+			"msg":    "查询失败！",
+		})
+		return
+	}
+
+	log.Println("未花交易列表：",string(body))
+
+	var responseInfo model.UnspentOutputs
+	err2 := json.Unmarshal(body,&responseInfo)
+	if nil != err2 {
+		log.Println(err2)
+		c.JSON(500,gin.H{
+			"status": 1,
+			"err":err2,
+			"msg":    "查询失败！",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK,gin.H{
+		"status": 0,
+		"msg":    "查询成功",
+		"datas":responseInfo,
+	})
 }

@@ -1,6 +1,6 @@
 info:
   contact: {}
-  description: This is a sample server Petstore server.
+  description: 超链 多币种钱包 -- Btc接口
   license: {}
   title: Bitcoin Wallet API
   version: "1.0"
@@ -114,6 +114,32 @@ paths:
           schema:
             type: string
       summary: 发送交易
+  /btc/v1/account/unspents/:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      parameters:
+      - description: 比特币帐户地址
+        in: query
+        name: address
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: failed
+          schema:
+            type: string
+        "500":
+          description: failed
+          schema:
+            type: string
+      summary: 获取未花列表
   /btc/v1/wallet/accounts/:
     post:
       consumes:
@@ -144,7 +170,7 @@ paths:
           description: 失败
           schema:
             type: string
-      summary: 向钱包增加BTC帐户
+      summary: 向钱包增加BTC帐户（因产品设计成比特币与以太币分开为单独的钱包，故该API用不上）
   /btc/v1/wallet/phone/:
     put:
       consumes:
@@ -176,4 +202,30 @@ paths:
           schema:
             type: string
       summary: 修改钱包的电话号码
+  /btc/v1/wallets/:
+    delete:
+      consumes:
+      - application/x-www-form-urlencoded
+      parameters:
+      - description: 钱包的Id
+        in: formData
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 删除钱包成功
+          schema:
+            type: string
+        "400":
+          description: 非法参数
+          schema:
+            type: string
+        "500":
+          description: 失败
+          schema:
+            type: string
+      summary: 根据指定的钱包Id删除钱包
 swagger: "2.0"

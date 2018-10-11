@@ -8,7 +8,7 @@ import (
 
 // @title Bitcoin Wallet API
 // @version 1.0
-// @description This is a sample server Petstore server.
+// @description 超链 多币种钱包 -- Btc接口
 // @termOfService http://swagger.io/terms/
 
 func main() {
